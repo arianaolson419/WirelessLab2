@@ -1,6 +1,8 @@
-"""This file contains functions to implement a Zero-Forcing receiver and an MMSE receiver.
+"""This file contains functions to implement a Zero-Forcing receiver and an
+MMSE receiver for parts a and b of Lab 2.
 """
 
+from __future__ import print_function, division
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -38,16 +40,42 @@ def estimate_channel(rx1_header, rx2_header, zeros1, zeros2, tx1_header, tx2_hea
     header22 = np.copy(rx2_header)
 
     # Replace 0s in denominators to avoid division errors.
-    header11[header11 == 0] = 1e-12
-    header21[header21 == 0] = 1e-12
-    header12[header12 == 0] = 1e-12
-    header22[header22 == 0] = 1e-12
+    tx1_header[tx1_header == 0] = 1e-12
+    tx2_header[tx2_header == 0] = 1e-12
     
     H = np.zeros((2, 2), dtype=np.complex64)
-    H[0][0] = np.mean(tx1_header / header11)
-    H[0][1] = np.mean(tx2_header / header12)
-    H[1][0] = np.mean(tx1_header / header21)
-    H[1][1] = np.mean(tx2_header / header22)
+    H[0][0] = np.mean(header11 / tx1_header)
+    H[0][1] = np.mean(header12 / tx2_header)
+    H[1][0] = np.mean(header21 / tx1_header)
+    H[1][1] = np.mean(header22 / tx2_header)
+
+    return H
+
+def estimate_channel_mimo(rx_sections, tx_headers):
+    """Estimate the channel using the headers sent from each antenna.
+
+    Channel estimation is the same for both the zero-forcing and MMSE
+    receivers. This function uses copies of the arrays given to it because any
+    0s are replaced by small numbers ot avoid division errors.
+
+    Args:
+        rx_sections (complex (4, 4, header_bits) ndarray): A matrix of portions
+            of the signal with the first two indices corresponding to the
+            antenna the signal was received at and the antenna the header sent
+            suring this time was transmitted from.
+        tx_headers (ndarray of shape (4, header_bits)): The known transmitted
+            headers.
+
+    Returns:
+        H (complex (4, 4) ndarray): A matrix of channel estimations.
+    """
+    # Replace 0s in denominators to avoid division errors.
+    tx_headers[tx_headers == 0] = 1e-12
+
+    H = np.zeros((4, 4), dtype=np.complex64)
+    for i in range(4):
+        for j in range(4):
+            H[i, j] = np.mean(rx_sections[i, j, :] / tx_headers[i, :rx_sections.shape[-1]])
 
     return H
 
@@ -112,3 +140,16 @@ def recover_signals(rx1, rx2, W):
     x2_est = np.squeeze(x_est[1, :])
 
     return x1_est, x2_est
+
+def recover_signals_mimo(rx, W):
+    """Use a weight matrix to recover MIMO signals.
+    Args:
+        rx (complex (4, num_samples) ndarray): The received MIMO signals with
+            each row as the received signal at one antenna.
+        W (complex (4, 4) ndarray): A matrix of weights to apply to the signal.
+
+    Returns:
+        x_est (complex (4, num_samples) ndarray): The recovered MIMO signals in
+            the same format as rx.
+    """
+    return np.matmul(W, rx)

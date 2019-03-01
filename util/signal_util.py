@@ -191,3 +191,94 @@ def calculate_error_rate(symbols_tx, symbols_rx):
     """
     assert symbols_tx.shape == symbols_rx.shape
     return 100 - (100 * (symbols_rx == symbols_tx).sum() / symbols_tx.shape)
+
+def generate_symbols_mimo(num_symbols, seed):
+    """Generate 4 random data sequences to transmit over the MIMO channel.
+
+    Args: 
+        num_symbols (int): The number of symbols of data to generate.
+        seed (int): The seed for the random number generator.
+
+    Returns:
+        symbols (ndarray of shape (4, num_symbols)): An array consisting
+        of +1 and -1 values.
+    """
+    np.random.seed(seed)
+    symbols = np.sign(np.random.randn(4, num_symbols))
+    
+    return symbols
+
+def generate_data_mimo(symbols, symbol_period):
+    """Modulate a series of symbols into BPSK data.
+
+    Args:
+        symbols (numpy array of shape (4, num_symbols)): An array of 1s and -1s
+            representing bits to transmit.
+        symbol_period (int): The number of samples in a single pulse.
+    
+    Returns:
+        bpsk_data (ndarray of shape (4, num_symbols * symbol_period)): An array
+            of 4 bpsk data signals to transmit.
+    """
+    pulse = np.ones(symbol_period)
+    bpsk_list = []
+
+    for i in range(4):
+        x = np.zeros(symbol_period * symbols.shape[-1])
+        x[::symbol_period] = symbols[0, :]
+        bpsk_list.append(np.convolve(pulse, x, mode='same'))
+
+    bpsk_data = np.vstack(bpsk_list)
+    return bpsk_data
+
+def create_tx_mimo(headers, data, num_zeros):
+    """Creates 4 MIMO signals for transmitting through the channel.
+
+    Each of the signals is constructed in the following way:
+    1. A section of zero samples.
+    2. A section of  psuedo-random bits from tx1, encoded using BPSK
+    3. A section of zero samples.
+    2. A section of  psuedo-random bits from tx2, encoded using BPSK
+    3. A section of zero samples.
+    2. A section of  psuedo-random bits from tx3, encoded using BPSK
+    3. A section of zero samples.
+    2. A section of  psuedo-random bits from tx4, encoded using BPSK
+    5. A section of zero samples from all signals.
+    6. A section of data bits, sent from all antennas.
+    
+    Args:
+        headers (ndarray of shape (4, num_header_samples)): BPSK modulated headers to prepend to the data.
+        data (ndarray of shape (4, num_data_samples)): BPSK modulated data to transmit.
+        num_zeros(int): The number of zeros to use for padding.
+
+    Returns:
+        tx_mimo (ndarray of shape (4, total samples): The BPSK signals to transmit with MIMO over the channel.
+    """
+    header_samples = headers.shape[-1]
+    data_samples = data.shape[-1]
+    samples_per_signal = header_samples * 4 + data_samples + num_zeros * 5
+    tx_mimo = np.zeros((4, samples_per_signal))
+    
+    header1_start = num_zeros
+    header1_end = num_zeros + header_samples
+
+    header2_start = num_zeros + header1_end
+    header2_end = header2_start + header_samples
+    
+    header3_start = num_zeros + header2_end
+    header3_end = header3_start + header_samples
+
+    header4_start = num_zeros + header3_end
+    header4_end = header4_start + header_samples
+
+    data_start = header4_end + num_zeros
+    data_end = data_start + data_samples
+
+    tx_mimo[0, header1_start:header1_end] = headers[0, :]
+    tx_mimo[1, header2_start:header2_end] = headers[1, :]
+    tx_mimo[2, header3_start:header3_end] = headers[2, :]
+    tx_mimo[3, header4_start:header4_end] = headers[3, :]
+
+    tx_mimo[:, data_start:data_end] = data
+
+    return tx_mimo
