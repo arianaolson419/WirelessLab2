@@ -1,0 +1,6 @@
+*.swp
+*.out
+*.aux
+*.zip
+*.log
+__pycache__
