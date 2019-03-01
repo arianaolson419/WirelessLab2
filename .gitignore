@@ -3,4 +3,5 @@
 *.aux
 *.zip
 *.log
+*.pyc
 __pycache__
