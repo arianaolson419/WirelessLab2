@@ -153,3 +153,34 @@ def recover_signals_mimo(rx, W):
             the same format as rx.
     """
     return np.matmul(W, rx)
+
+def preprocess_tx(tx, H):
+    """Transform the transmitted data with known channel information.
+
+    Args:
+        tx (complex (4, n) ndarray): The n sample long signals to transmit.
+        H (complex (4, 4) ndarray): A matrix of channel estimations.
+
+    Returns:
+        U (complex (4, 4) ndarray): The unitary matrix U resulting from
+            performing SVD on the channel estimations.
+        S (complex (4, 4) ndarray): The diagonal matrix S representing the
+            singular values of the SVD.
+        tx_transform: The signal to transmit that's been transformed using CSI.
+    """
+    U, S, Vh = np.linalg.svd(H)
+    tx_transform = np.matmul(np.transpose(np.conjugate(Vh)), tx)
+    return U, S, tx_transform
+
+def recover_signals_csi(rx, U):
+    """Recover signals transformed with known CSI.
+
+    Args:
+        rx (complex (4, n) ndarray: The n sample long received signals.
+        U (complex (4, 4) ndarray: The unitary matrix U from the SVD of the channel estimates.
+
+    Returns:
+        s_est: The recovered transmitted symbols.
+    """
+    s_est = np.matmul(np.transpose(np.conjugate(U)), rx)
+    return s_est

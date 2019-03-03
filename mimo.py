@@ -22,7 +22,7 @@ signals = [(tx_mimo[i, :], 'tx {}'.format(i)) for i in range(4)]
 signal_util.make_subplots(signals)
 
 # Need to apply a gain before transmitting through the channel.
-gain_amplitude = 200
+gain_amplitude = 400
 
 # Send the signal through the channel.
 rx_mimo = MIMOChannel4x4(gain_amplitude * tx_mimo)
@@ -106,11 +106,11 @@ sections[1, 3, :] = zeros24
 sections[2, 3, :] = zeros34
 
 # Estimate the channel from these signal slices.
-H_zf = receivers.estimate_channel_mimo(sections, bpsk_headers)
-print(H_zf)
+H = receivers.estimate_channel_mimo(sections, bpsk_headers)
+print(H)
 
 # Calculate the ZF weight matrix
-W_zf = receivers.calculate_weights_zero_forcing(H_zf)
+W_zf = receivers.calculate_weights_zero_forcing(H)
 
 # Use ZF to estimate the signals.
 x_est = receivers.recover_signals_mimo(rx_mimo, W_zf)
@@ -119,24 +119,41 @@ x_est = receivers.recover_signals_mimo(rx_mimo, W_zf)
 signals = [(x_est[i, :], 'x_est {}'.format(i)) for i in range(4)]
 signal_util.make_subplots(signals)
 
-# Visualize the slices of the signals used to isolate the headers.
-tmp = np.zeros(rx_mimo.shape, dtype=rx_mimo.dtype)
-tmp[0, header1_start:header1_end - 10] = header11
-tmp[1, header2_start:header2_end - 10] = header22
-tmp[2, header3_start:header3_end - 10] = header33
-tmp[3, header4_start:header4_end - 10] = header44
+# Transmit and recover MIMO signals with known CSI.
+U, S, tx_transform = receivers.preprocess_tx(tx_mimo * gain_amplitude, H) 
+rx_mimo_csi = MIMOChannel4x4(tx_transform)
+s_est = receivers.recover_signals_csi(rx_mimo_csi, U)
 
-plt.subplot(4, 1, 1)
-plt.plot(rx_mimo[0, :])
-plt.plot(tmp[0, :])
-plt.subplot(4, 1, 2)
-plt.plot(rx_mimo[1, :])
-plt.plot(tmp[1, :])
-plt.subplot(4, 1, 3)
-plt.plot(rx_mimo[2, :])
-plt.plot(tmp[2, :])
-plt.subplot(4, 1, 4)
-plt.plot(rx_mimo[3, :])
-plt.plot(tmp[3, :])
-plt.show()
+signals_tx = [(tx_transform[i, :], 'Tx Transformed {}'.format(i + 1)) for i in range(4)]
+signals_rx = [(rx_mimo_csi[i, :], 'Rx {}'.format(i + 1)) for i in range(4)]
+signals_s_est = [(s_est[i, :], 's_est {}'.format(i + 1)) for i in range(4)]
+
+signal_util.make_subplots(signals_tx)
+signal_util.make_subplots(signals_rx)
+signal_util.make_subplots(signals_s_est)
+
+bits_x_est = signal_util.decode_bpsk(x_est)
+bits_s_est = signal_util.decode_bpsk(s_est)
+
+print(np.sum(bits_x_est == bits_s_est) / bits_s_est.shape[-1])
+## Visualize the slices of the signals used to isolate the headers.
+#tmp = np.zeros(rx_mimo.shape, dtype=rx_mimo.dtype)
+#tmp[0, header1_start:header1_end - 10] = header11
+#tmp[1, header2_start:header2_end - 10] = header22
+#tmp[2, header3_start:header3_end - 10] = header33
+#tmp[3, header4_start:header4_end - 10] = header44
+#
+#plt.subplot(4, 1, 1)
+#plt.plot(rx_mimo[0, :])
+#plt.plot(tmp[0, :])
+#plt.subplot(4, 1, 2)
+#plt.plot(rx_mimo[1, :])
+#plt.plot(tmp[1, :])
+#plt.subplot(4, 1, 3)
+#plt.plot(rx_mimo[2, :])
+#plt.plot(tmp[2, :])
+#plt.subplot(4, 1, 4)
+#plt.plot(rx_mimo[3, :])
+#plt.plot(tmp[3, :])
+#plt.show()
 
