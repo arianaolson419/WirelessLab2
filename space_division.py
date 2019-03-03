@@ -6,9 +6,15 @@ from util import signal_util, receivers
 tx1 = signal_util.load_complex_float32('data/tx1.dat')
 tx2 = signal_util.load_complex_float32('data/tx2.dat')
 
+signals = [(tx1, 'Transmitted antenna 1'), (tx2, 'Transmitted antenna 2')]
+signal_util.make_subplots(signals)
+
 # Read received signals.
 rx1 = signal_util.load_complex_float32('data/rx1.dat')
 rx2 = signal_util.load_complex_float32('data/rx2.dat')
+
+signals = [(rx1, 'Received antenna 1'), (rx2, 'Received antenna 2')]
+signal_util.make_subplots(signals)
 
 tx_header1, tx_header2 = signal_util.get_headers_tx(tx1, tx2)
 tx_data1, tx_data2 = signal_util.get_data_tx(tx1, tx2)
@@ -19,7 +25,8 @@ symbols1_tx = signal_util.decode_bpsk(tx_data1)
 symbols2_tx = signal_util.decode_bpsk(tx_data2)
 
 # Estimate the channels between antennas.
-H = receivers.estimate_channel(rx_header1, rx_header2, zeros1, zeros2, tx_header1, tx_header2)
+H = receivers.estimate_channel(rx_header1, rx_header2, zeros1, zeros2,
+        tx_header1, tx_header2)
 
 # Recover signals with zero-forcing receiver.
 W_zf = receivers.calculate_weights_zero_forcing(H)
