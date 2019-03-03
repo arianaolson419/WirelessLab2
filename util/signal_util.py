@@ -224,9 +224,10 @@ def generate_data_mimo(symbols, symbol_period):
     bpsk_list = []
 
     for i in range(4):
-        x = np.zeros(symbol_period * symbols.shape[-1])
+        x = np.zeros(symbol_period * symbols.shape[-1]-symbol_period+1)
         x[::symbol_period] = symbols[0, :]
-        bpsk_list.append(np.convolve(pulse, x, mode='same'))
+        tmp = np.convolve(x, pulse)
+        bpsk_list.append(tmp)
 
     bpsk_data = np.vstack(bpsk_list)
     return bpsk_data
