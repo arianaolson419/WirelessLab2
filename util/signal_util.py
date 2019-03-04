@@ -1,5 +1,5 @@
-"""This file contains functions for loading, inspecting, and slicing signals
-for use in Zero-Forcing and MMSE receivers.
+"""This file contains functions for a creating and analyzing signals for both
+Part a and Part b of the Principles of Wireless Communications Lab.
 """
 import numpy as np
 import matplotlib.pyplot as plt
@@ -103,7 +103,7 @@ def get_slices_rx(rx1, rx2):
         header1, header2 (complex numpy arrays): The segments of rx1 and rx2
             corresponding to where there should be a header ideally.
         zero1, zero2 (complex numpy arrays): The segments of rx1 and rx2
-            correspinding to where a header was transmitted and we should ideally
+            corresponding to where a header was transmitted and we should ideally
             expect zeros. 
         data1, data2 (complex numpy arrays): The data portions of rx1 and rx2.
     """
@@ -283,3 +283,57 @@ def create_tx_mimo(headers, data, num_zeros):
     tx_mimo[:, data_start:data_end] = data
 
     return tx_mimo
+
+def rms(signals):
+    """Calculate the RMS values of signals.
+
+    Args:
+        signals (complex 2D ndarray): A matrix with rows containing signals.
+
+    Returns:
+        rms (real 1D ndarray): A vector with entries corresponding to the rms
+            of each row of signals.
+    """
+    rms = np.zeros(signals.shape[0])
+    for i in range(signals.shape[0]):
+        rms[i] = np.sqrt(np.mean(np.square(np.abs(signals[i, :]))))
+
+    return rms
+
+def linear_to_db(linear_signal):
+    """Convert a signal from linear to dB.
+
+    In this case, dB is in reference to 1.0.
+
+    Args:
+        linear_signal (real 2D ndarray): A matrix with rows containing the linear signals.
+
+    Returns:
+        db_signal (real 2D ndarray): A matrix with rows containing the signals
+            with samples mesaured in dB.
+    """
+    reference = 1.0
+    return 20 * np.log10(linear_signal)
+
+def calculate_snr(noise_signal, data_signal):
+    """Calculate the signal to noise ratio from the given signals.
+
+    Args:
+        noise_signal (complex 2D ndarray): A matrix with rows containing
+            portions of a signal with just noise. The samples of the signal are
+            linear amplitudes.
+        data_signal (complex 2D ndarray): A matrix with rows containing
+            portions of a signal with data and additive noise. The samples of
+            the signal are linear amplitudes.
+
+    Returns:
+        snr (float): The signal to noise ratio between noise_signal and data_signal, in dB.
+    """
+    rms_noise = rms(noise_signal)
+    rms_data = rms(data_signal)
+
+    noise_db = linear_to_db(rms_noise)
+    data_db = linear_to_db(rms_data)
+
+    snr = data_db - noise_db
+    return snr
