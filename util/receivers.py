@@ -1,5 +1,5 @@
-"""This file contains functions to implement a Zero-Forcing receiver and an
-MMSE receiver for parts a and b of Lab 2.
+"""This file contains functions to implement the receivers in both Part a and
+Part b of the Principles of Wireless Communications Lab 2
 """
 
 from __future__ import print_function, division
